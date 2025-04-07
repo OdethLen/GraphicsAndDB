@@ -1,3 +1,6 @@
+using Microsoft.VisualBasic.FileIO;
+using System.Security.Cryptography;
+
 namespace GraphicsAndDB
 {
     public partial class Form1 : Form
@@ -12,45 +15,31 @@ namespace GraphicsAndDB
             OpenFileDialog openFileDialog = new OpenFileDialog();
             openFileDialog.Title = "Open csv file";
             openFileDialog.Filter = "csv files |*.csv";
-            if (openFileDialog.ShowDialog()!=DialogResult.OK )
-            return;
+            if (openFileDialog.ShowDialog() != DialogResult.OK)
+                return;
             string filePath = openFileDialog.FileName;
 
-            try
+            using (TextFieldParser textFieldParser= new TextFieldParser(filePath))
             {
-                // Leer todas las líneas del archivo
-                string[] lines = File.ReadAllLines(filePath);
+                textFieldParser.TextFieldType = FieldType.Delimited;
+                textFieldParser.Delimiters = new[] { "," };
+                textFieldParser.HasFieldsEnclosedInQuotes = true;
 
-                if (lines.Length == 0)
-                {
-                    MessageBox.Show("File is empty.");
-                    return;
-                }
-
-                // Limpiar el DataGridView
-                dgvAppData.Rows.Clear();
                 dgvAppData.Columns.Clear();
+                dgvAppData.Rows.Clear();
 
-
-
-                // Leer encabezados desde la primera línea
-                string[] headers = lines[0].Split(',');
-
-                foreach (string header in headers)
+                // Leer encabezados
+                //Si todavia quedan lineas por leer
+                if (!textFieldParser.EndOfData)
                 {
-                    dgvAppData.Columns.Add(header, header);
+                    foreach (var header in textFieldParser.ReadFields())
+                        dgvAppData.Columns.Add(header, header);
                 }
 
-                // Agregar el resto de las filas
-                for (int i = 1; i < lines.Length; i++)
-                {
-                    string[] values = lines[i].Split(',');
-                    dgvAppData.Rows.Add(values);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Error loading data: {ex.Message}");
+                // Leer filas
+                //Mientas que queden lineas por leer seran agregadas
+                while (!textFieldParser.EndOfData)
+                    dgvAppData.Rows.Add(textFieldParser.ReadFields());
             }
 
         }
